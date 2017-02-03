@@ -1,0 +1,285 @@
+LagerDefizit=
+	LAGER SOLL-LagerBestand
+	~	Stück
+	~		|
+
+TagesVerkauf=
+	IF THEN ELSE((LagerBestand/Zeiteinheit<(NORMAL VERKAUF+VerkaufsSchwankung+PulsVerkauf\
+		)), LagerBestand/Zeiteinheit, NORMAL VERKAUF
++VerkaufsSchwankung
+	+PulsVerkauf)
+	~	Stück/Day
+	~		|
+
+Zeiteinheit=
+	1
+	~	Day
+	~		|
+
+SCHWANKUNG PROZENT=
+	25
+	~	1
+	~		|
+
+VERKAUFS PULS PROZENT=
+	0
+	~	1
+	~		|
+
+alten Wert streichen=
+	IF THEN ELSE(ABS(Time+TIME STEP/2-INTEGER(Time+TIME STEP/2))<=TIME STEP/2,Tageswert/\
+		TIME STEP, 0)
+	~	1/Day
+	~		|
+
+Anlieferung=
+	DELAY FIXED(Auslieferung, LIEFER ZEIT,Auslieferung)
+	~	Stück/Day
+	~		|
+
+AuftragsBestand= INTEG (
+	+LieferAufträge-Auslieferung,
+		NORMAL VERKAUF*LIEFER ZEIT)
+	~	Stück
+	~		|
+
+Auslieferung=
+	AuftragsBestand/LIEFER ZEIT
+	~	Stück/Day
+	~		|
+
+Bestellung nach Defizit=
+	LAGER DEFIZIT BESTELL FAKTOR*LagerDefizit
+	~	Stück/Day
+	~		|
+
+Bestellung nach Tagesverkauf=
+	VERKAUFS BESTELL FAKTOR*TagesVerkauf
+	~	Stück/Day
+	~		|
+
+LAGER DEFIZIT BESTELL FAKTOR=
+	0.1
+	~	(Stück/Day)/Stück
+	~	Bestellung proportional zum Lagerdefizit (0 bis 2)
+	|
+
+GesamtBestellung=
+	IF THEN ELSE(Bestellung nach Defizit+Bestellung nach Tagesverkauf<0, 0, Bestellung nach Defizit\
+		+Bestellung nach Tagesverkauf)
+	~	Stück/Day
+	~		|
+
+LagerBestand= INTEG (
+	Anlieferung-TagesVerkauf,
+		LAGER SOLL)
+	~	Stück
+	~		|
+
+LAGER SOLL=
+	2000
+	~	Stück
+	~		|
+
+LieferAufträge=
+	GesamtBestellung
+	~	Stück/Day
+	~		|
+
+LIEFER ZEIT=
+	5
+	~	Day
+	~		|
+
+neuen Wert ermitteln=
+	IF THEN ELSE(ABS(Time-INTEGER(Time))<=TIME STEP/2, RANDOM UNIFORM(0, 1, 0)/TIME STEP\
+		, 0)
+	~	1/Day
+	~		|
+
+NORMAL VERKAUF=
+	1000
+	~	Stück/Day
+	~		|
+
+PulsVerkauf=
+	IF THEN ELSE(ABS(Time-VERKAUFS PULS TAG)<=1/2, VERKAUFS PULS PROZENT*NORMAL VERKAUF/\
+		100, 0)
+	~	Stück/Day
+	~	Puls gilt für einen vollen Tag!
+	|
+
+VERKAUFS PULS TAG=
+	10
+	~	Day
+	~		|
+
+Tageswert= INTEG (
+	+neuen Wert ermitteln-alten Wert streichen,
+		0)
+	~	1
+	~		|
+
+VERKAUFS BESTELL FAKTOR=
+	1
+	~	Dmnl
+	~	Bestellung proportional zum Verkauf (0 bis 2)
+	|
+
+VerkaufsSchwankung=
+	(2*SCHWANKUNG PROZENT/100)*NORMAL VERKAUF*(Tageswert-1/2)
+	~	Stück/Day
+	~	Verkaufsschwankung wird für jeden Tag nur einmal berechnet!
+	|
+
+********************************************************
+	.Control
+********************************************************~
+		Simulation Control Parameters
+	|
+
+FINAL TIME  = 250
+	~	Day
+	~	The final time for the simulation.
+	|
+
+INITIAL TIME  = 0
+	~	Day
+	~	The initial time for the simulation.
+	|
+
+SAVEPER  = 
+        TIME STEP
+	~	Day [0,?]
+	~	The frequency with which output is stored.
+	|
+
+TIME STEP  = 0.0625
+	~	Day [0,?]
+	~	The time step for the simulation.
+	|
+
+\\\---/// Sketch information - do not modify anything except names
+V300  Do not put anything below this section - it will be ignored
+*View 1
+$192-192-192,0,Arial|12||0-0-0|0-0-0|0-0-0|-1--1--1|-1--1--1|96,96,100
+12,1,0,130,23,123,13,3,4,0,4,0,0,0,0,0-0-0,0-255-255,|12||0-0-0
+Lagerhaltung und Auftragsbestand
+10,2,LagerBestand,271,347,46,27,3,3,0,0,0,0,0,0
+10,3,AuftragsBestand,461,409,43,27,3,3,0,0,0,0,0,0
+10,4,SCHWANKUNG PROZENT,54,135,50,16,8,3,0,8,0,0,0,0,0-0-0,0-0-0,|10||0-0-0
+10,5,VerkaufsSchwankung,273,163,47,18,8,3,0,0,0,0,0,0
+10,6,NORMAL VERKAUF,38,196,33,16,8,3,0,8,0,0,0,0,0-0-0,0-0-0,|10||0-0-0
+10,7,VERKAUFS BESTELL FAKTOR,62,272,60,16,8,3,0,8,0,0,0,0,0-0-0,0-0-0,|10||0-0-0
+10,8,Bestellung nach Tagesverkauf,160,325,58,18,8,3,0,0,0,0,0,0
+10,9,LAGER SOLL,51,355,43,9,8,3,0,8,0,0,0,0,0-0-0,0-0-0,|10||0-0-0
+10,10,LagerDefizit,162,405,45,10,8,3,0,0,0,0,0,0
+10,11,LAGER DEFIZIT BESTELL FAKTOR,62,438,60,16,8,3,0,8,0,0,0,0,0-0-0,0-0-0,|10||0-0-0
+10,12,Bestellung nach Defizit,162,495,58,18,8,3,0,0,0,0,0,0
+10,13,GesamtBestellung,276,541,39,18,8,3,0,0,0,0,0,0
+10,14,LIEFER ZEIT,576,261,40,9,8,3,0,8,0,0,0,0,0-0-0,0-0-0,|10||0-0-0
+1,15,4,5,1,0,0,0,0,64,0,-1--1--1,,1|(151,120)|
+1,16,6,5,1,0,0,0,0,64,0,-1--1--1,,1|(132,153)|
+10,17,Time,413,150,27,10,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|12||128-128-128
+12,18,48,271,214,10,8,0,3,0,0,-1,0,0,0
+1,19,21,18,4,0,0,22,0,0,0,-1--1--1,,1|(271,243)|
+1,20,21,2,100,0,0,22,0,0,0,-1--1--1,,1|(271,297)|
+11,21,48,271,269,6,5,33,3,0,0,4,0,0,0
+10,22,TagesVerkauf,308,269,31,17,40,3,0,0,-1,0,0,0
+1,23,6,22,1,0,0,0,0,64,0,-1--1--1,,1|(203,232)|
+1,24,5,22,1,0,0,0,0,64,0,-1--1--1,,1|(302,220)|
+1,25,7,8,1,0,0,0,0,64,0,-1--1--1,,1|(131,275)|
+1,26,22,8,1,0,0,0,0,64,0,-1--1--1,,1|(199,282)|
+1,27,8,13,1,0,0,0,0,64,0,-1--1--1,,1|(226,420)|
+1,28,2,10,1,0,0,0,0,64,0,-1--1--1,,1|(182,373)|
+1,29,9,10,1,0,0,0,0,64,0,-1--1--1,,1|(124,371)|
+1,30,10,12,0,0,0,0,0,64,0,-1--1--1,,1|(162,439)|
+1,31,12,13,1,0,0,0,0,64,0,-1--1--1,,1|(211,541)|
+12,32,48,460,286,10,8,0,3,0,0,-1,0,0,0
+1,33,35,32,4,0,0,22,0,0,0,-1--1--1,,1|(461,313)|
+1,34,35,3,100,0,0,22,0,0,0,-1--1--1,,1|(461,362)|
+11,35,48,461,337,6,5,33,3,0,0,4,0,0,0
+10,36,Auslieferung,510,337,45,10,40,3,0,0,-1,0,0,0
+12,37,48,463,534,10,8,0,3,0,0,-1,0,0,0
+1,38,40,3,4,0,0,22,0,0,0,-1--1--1,,1|(462,458)|
+1,39,40,37,100,0,0,22,0,0,0,-1--1--1,,1|(462,508)|
+11,40,48,462,485,6,5,33,3,0,0,4,0,0,0
+10,41,LieferAufträge,502,485,34,18,40,3,0,0,-1,0,0,0
+1,42,13,41,1,0,0,0,0,64,0,-1--1--1,,1|(370,547)|
+12,43,48,272,475,10,8,0,3,0,0,-1,0,0,0
+1,44,46,2,4,0,0,22,0,0,0,-1--1--1,,1|(272,395)|
+1,45,46,43,100,0,0,22,0,0,0,-1--1--1,,1|(272,447)|
+11,46,48,272,422,6,5,33,3,0,0,4,0,0,0
+10,47,Anlieferung,317,422,41,10,40,3,0,0,-1,0,0,0
+1,48,14,47,1,0,0,0,0,64,0,-1--1--1,,1|(402,285)|
+1,49,36,47,1,0,0,0,0,64,0,-1--1--1,,1|(424,339)|
+1,50,11,12,1,0,0,0,0,64,0,-1--1--1,,1|(132,443)|
+10,51,VERKAUFS PULS TAG,578,210,38,16,8,3,0,8,0,0,0,0,0-0-0,0-0-0,|10||0-0-0
+10,52,PulsVerkauf,414,213,44,10,8,3,0,0,0,0,0,0
+1,53,51,52,1,0,0,0,0,64,0,-1--1--1,,1|(463,198)|
+1,54,52,22,1,0,0,0,0,64,0,-1--1--1,,1|(349,230)|
+10,55,TIME STEP,450,25,44,9,8,2,0,11,-1,0,0,0,128-128-128,0-0-0,|10||128-128-128
+1,56,17,52,1,0,0,0,0,64,0,-1--1--1,,1|(413,204)|
+1,57,2,22,1,0,0,0,0,64,0,-1--1--1,,1|(339,298)|
+1,58,3,36,1,0,0,0,0,64,0,-1--1--1,,1|(526,393)|
+1,59,14,36,1,0,0,0,0,64,0,-1--1--1,,1|(560,306)|
+1,60,6,52,1,0,0,0,0,64,0,-1--1--1,,1|(225,193)|
+10,61,VERKAUFS PULS PROZENT,558,157,58,16,8,3,0,8,0,0,0,0,0-0-0,0-0-0,|10||0-0-0
+1,62,61,52,1,0,0,0,0,64,0,-1--1--1,,1|(493,164)|
+10,63,Tageswert,446,64,40,17,3,3,0,0,0,0,0,0
+12,64,48,292,62,10,8,0,3,0,0,-1,0,0,0
+1,65,67,63,4,0,0,22,0,0,0,-1--1--1,,1|(381,62)|
+1,66,67,64,100,0,0,22,0,0,0,-1--1--1,,1|(324,62)|
+11,67,48,352,62,5,6,34,3,0,0,1,0,0,0
+10,68,neuen Wert ermitteln,352,87,44,19,40,3,0,0,-1,0,0,0
+12,69,48,604,64,10,8,0,3,0,0,-1,0,0,0
+1,70,72,69,4,0,0,22,0,0,0,-1--1--1,,1|(570,64)|
+1,71,72,63,100,0,0,22,0,0,0,-1--1--1,,1|(511,64)|
+11,72,48,541,64,5,6,34,3,0,0,1,0,0,0
+10,73,alten Wert streichen,541,87,37,18,40,3,0,0,-1,0,0,0
+1,74,63,73,1,0,0,0,0,64,0,-1--1--1,,1|(474,96)|
+1,75,17,68,1,0,0,0,0,64,0,-1--1--1,,1|(378,116)|
+1,76,55,68,1,0,0,0,0,64,0,-1--1--1,,1|(373,50)|
+1,77,17,73,1,0,0,0,0,64,0,-1--1--1,,1|(500,114)|
+1,78,55,73,1,0,0,0,0,64,0,-1--1--1,,1|(522,51)|
+1,79,63,5,1,0,0,0,0,64,0,-1--1--1,,1|(363,139)|
+10,80,Zeiteinheit,385,250,32,9,8,3,0,8,0,0,0,0,0-0-0,0-0-0,|10||0-0-0
+1,81,80,22,1,0,0,0,0,64,0,-1--1--1,,1|(352,279)|
+1,82,9,2,0,0,0,0,0,0,1,-1--1--1,,1|(152,351)|
+1,83,14,3,0,0,0,0,0,0,1,-1--1--1,,1|(529,320)|
+1,84,6,3,0,0,0,0,0,0,1,-1--1--1,,1|(237,296)|
+///---\\\
+:GRAPH Z502c
+:TITLE Lagerhaltung und Auftragsbestand
+:X-AXIS Time
+:X-DIV 10
+:Y-DIV 6
+:X-MIN 0
+:WIDTH 5
+:HEIGHT 4
+:SCALE
+:VAR LagerBestand
+:Y-MIN 0
+:Y-MAX 3000
+:LINE-WIDTH 3
+:SCALE
+:VAR TagesVerkauf
+:Y-MIN 0
+:Y-MAX 3000
+:LINE-WIDTH 2
+:SCALE
+:VAR AuftragsBestand
+:Y-MIN 0
+:Y-MAX 6000
+:LINE-WIDTH 1
+:L<%^E!@
+1:.vdf
+9:.
+15:0,0,0,0,0,0
+19:100,0
+27:2,
+4:Time
+5:LieferAufträge
+24:0
+25:250
+26:250
